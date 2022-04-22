@@ -3,6 +3,7 @@ import sys
 from collections import namedtuple
 import math
 import random
+
 # print("Debug messages...", file=sys.stderr, flush=True)
 
 
@@ -122,17 +123,6 @@ while True:
                     best_action = f'MOVE {x} {y} moving to guard position'
                 else:
                     best_action = f'WAIT HERO {i}'
-            # use shield spell to defend
-            if hero.shieldLife == 0 and my_mana >= 10 and in_range(hero.x, hero.y, base_x, base_y, 5000):
-                for opponent_hero in opp_heroes:
-                    if in_range(opponent_hero.x, opponent_hero.y, hero.x, hero.y, max_dist):
-                        value = 2e7
-                        if value > best_value:
-                            best_value = value
-                            best_hero = i
-                            best_monster = opponent_hero
-                            best_action = f'SPELL SHIELD {hero.id} SHIELD SELF'
-                            break
             # use wind spell
             if my_mana >= 10:
                 is_monster_near_base = False
@@ -174,9 +164,9 @@ while True:
             # sabotage
             if attack_on and i == attacker_hero_id:
                 # move attacker hero to opponent base
-                # random_radius = random.randint(3000, 5500)
+                random_radius = random.randint(1500, 6000)
                 possible_pos = get_guard_position(
-                    opponent_base_x, opponent_base_y, 5500)
+                    opponent_base_x, opponent_base_y, random_radius)
                 target_x, target_y = random.choice(possible_pos)
                 value = 1e9
                 if value > best_value:
@@ -185,6 +175,7 @@ while True:
                     best_action = f'MOVE {target_x} {target_y} moving to opponent base'
                     best_monster = None
 
+                # always have 20 mana for defense
                 if my_mana >= 30:
                     # use shield spell
                     for m in monsters:
@@ -230,7 +221,44 @@ while True:
                             best_hero = i
                             best_action = f'SPELL CONTROL {m.id} {opponent_base_x} {opponent_base_y} control {m.id}'
                             best_monster = None
-
+                    # control opponent hero
+                    for opponent_hero in opp_heroes:
+                        if opponent_hero.shieldLife > 0:
+                            continue
+                        if not in_range(opponent_hero.x, opponent_hero.y, opponent_base_x, opponent_base_y, 5000):
+                            continue
+                        if not in_range(opponent_hero.x, opponent_hero.y, hero.x, hero.y, 2200):
+                            continue
+                        if_attack_monster = 0
+                        for m in monsters:
+                            if in_range(m.x, m.y, opponent_hero.x, opponent_hero.y, 800):
+                                if_attack_monster += 1
+                        if if_attack_monster > 0:
+                            value = 5e9 + if_attack_monster
+                            if value > best_value:
+                                best_value = value
+                                best_hero = i
+                                best_action = f'SPELL CONTROL {opponent_hero.id} {MAP_WIDTH//2 } {MAP_HEIGHT//2} block {opponent_hero.id}'
+                                best_monster = None
+                    # wind opponent hero
+                    for opponent_hero in opp_heroes:
+                        if opponent_hero.shieldLife > 0:
+                            continue
+                        if not in_range(opponent_hero.x, opponent_hero.y, opponent_base_x, opponent_base_y, 5000):
+                            continue
+                        if not in_range(opponent_hero.x, opponent_hero.y, hero.x, hero.y, 1280):
+                            continue
+                        if_attack_monster = 0
+                        for m in monsters:
+                            if in_range(m.x, m.y, opponent_hero.x, opponent_hero.y, 800) and m.shieldLife > 0:
+                                if_attack_monster += 1
+                        if if_attack_monster > 0:
+                            value = 6e9 + if_attack_monster
+                            if value > best_value:
+                                best_value = value
+                                best_hero = i
+                                best_action = f'SPELL WIND  {MAP_WIDTH//2 } {MAP_HEIGHT//2} cast wind spell'
+                                best_monster = None
         if best_hero is None:
             break
 
