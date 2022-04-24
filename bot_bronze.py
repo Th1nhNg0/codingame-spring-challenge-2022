@@ -108,7 +108,6 @@ while True:
             if isHeroUsed[i]:
                 continue
             hero = my_heroes[i]
-
             # move to guard position
             max_dist = 6200
             if attack_on:
@@ -150,7 +149,6 @@ while True:
 
             # attack monster to defense
             for m in monsters:
-
                 if isMonsterTargeted[m.id] or not ((m.nearBase == 1 and m.threatFor == 1) or (m.nearBase == 0 and m.threatFor == 1)):
                     continue
                 value = 1e7 - distance(base_x, base_y, m.x,
