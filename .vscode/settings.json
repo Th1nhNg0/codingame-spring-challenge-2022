@@ -2,5 +2,8 @@
   "C_Cpp.errorSquiggles": "Disabled",
   "files.associations": {
     "ostream": "cpp"
-  }
+  },
+  "java.dependency.packagePresentation": "flat",
+  "maven.view": "hierarchical",
+  "java.configuration.updateBuildConfiguration": "disabled"
 }
