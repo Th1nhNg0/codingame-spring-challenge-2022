@@ -64,9 +64,9 @@ while True:
 
     isMonsterTargeted = {}
 
-    monsters = []
-    my_heroes = []
-    opp_heroes = []
+    monsters: list[Entity] = []
+    my_heroes: list[Entity] = []
+    opp_heroes: list[Entity] = []
     for i in range(entity_count):
         _id, _type, x, y, shield_life, is_controlled, health, vx, vy, near_base, threat_for = [
             int(j) for j in input().split()]
@@ -134,45 +134,22 @@ while True:
                     if in_range(m.x, m.y,  hero.x, hero.y, 1280) and m.shieldLife == 0 and m.health > (distance(m.x, m.y, base_x, base_y) + 2200)/400:
                         is_monster_near_base = True
                         break
-                if is_monster_near_base:
+
+                is_opp_hero_near_base = False
+                if attack_on:
+                    for h in opp_heroes:
+                        if in_range(h.x, h.y, hero.x, hero.y, 1280) and h.shieldLife == 0 and in_range(h.x, h.y, base_x, base_y, 7000):
+                            is_opp_hero_near_base = True
+                            break
+
+                if is_monster_near_base or is_opp_hero_near_base:
                     value = 1e8
                     if value > best_value:
                         best_value = value
                         best_hero = i
                         best_monster = None
                         best_action = f'SPELL WIND {opponent_base_x} {opponent_base_y} cast wind spell'
-            # use shield on self
-            if not attack_on and hero.shieldLife == 0 and my_mana >= 30:
-                near_base = False
-                if in_range(hero.x, hero.y, base_x, base_y, 6000):
-                    near_base = True
-                if in_range(hero.x, hero.y, opponent_base_x, opponent_base_y, 6000):
-                    near_base = True
-                if near_base:
-                    opp_hero_in_range = False
-                    monster_in_range = False
-                    for opp_hero in opp_heroes:
-                        if in_range(hero.x, hero.y, opp_hero.x, opp_hero.y, 2200):
-                            opp_hero_in_range = True
-                            break
-                    for monster in monsters:
-                        if in_range(hero.x, hero.y, monster.x, monster.y, 2200):
-                            monster_in_range = True
-                            break
-
-                    shouldUseShield = False
-
-                    if opp_hero_in_range:
-                        shouldUseShield = True
-
-                    if shouldUseShield:
-                        value = 1e9 + 100
-                        if value > best_value:
-                            best_value = value
-                            best_hero = i
-                            best_monster = None
-                            best_action = f'SPELL SHIELD {hero.id}'
-            # farming
+           # farming
             for m in monsters:
                 max_dist = 9000
                 if attack_on:
@@ -220,22 +197,28 @@ while True:
 
                 # always have 20 mana for defense
                 if my_mana >= 30:
-                    # use shield spell
-                    for m in monsters:
-                        if not ((m.nearBase == 1 and m.threatFor == 2) or (m.nearBase == 0 and m.threatFor == 2)):
-                            continue
-                        if m.shieldLife > 0 or distance(m.x, m.y, hero.x, hero.y) > 2200:
-                            continue
-                        if distance(m.x, m.y, opponent_base_x, opponent_base_y) > 5000:
-                            continue
-                        if m.health/2 < (distance(m.x, m.y, opponent_base_x, opponent_base_y) - 300)/400:
-                            continue
-                        value = 4e9
-                        if value > best_value:
-                            best_value = value
-                            best_hero = i
-                            best_action = f'SPELL SHIELD {m.id} shield {m.id}'
-                            best_monster = None
+                    #   use shield on self
+                    if hero.shieldLife == 0:
+                        if in_range(hero.x, hero.y, opponent_base_x, opponent_base_y, 7000):
+                            opp_hero_in_range = False
+                            monster_in_range = False
+                            for opp_hero in opp_heroes:
+                                if in_range(hero.x, hero.y, opp_hero.x, opp_hero.y, 2200):
+                                    opp_hero_in_range = True
+                                    break
+                            for monster in monsters:
+                                if in_range(hero.x, hero.y, monster.x, monster.y, 2200):
+                                    monster_in_range = True
+                                    break
+
+                            if opp_hero_in_range and monster_in_range:
+                                value = 4e9 - 100
+                                if value > best_value:
+                                    best_value = value
+                                    best_hero = i
+                                    best_monster = None
+                                    best_action = f'SPELL SHIELD {hero.id}'
+
                     # use wind spell
                     is_monster_near_base = 0
                     for m in monsters:
@@ -264,6 +247,24 @@ while True:
                             best_hero = i
                             best_action = f'SPELL CONTROL {m.id} {opponent_base_x} {opponent_base_y} control {m.id}'
                             best_monster = None
+                    # use shield spell on monster
+                    for m in monsters:
+                        if not ((m.nearBase == 1 and m.threatFor == 2) or (m.nearBase == 0 and m.threatFor == 2)):
+                            continue
+                        if m.shieldLife > 0 or distance(m.x, m.y, hero.x, hero.y) > 2200:
+                            continue
+                        if distance(m.x, m.y, opponent_base_x, opponent_base_y) > 5000:
+                            continue
+                        if m.health/1.5 < (distance(m.x, m.y, opponent_base_x, opponent_base_y) - 300)/400:
+                            continue
+                        value = 5e9 + m.health / \
+                            1.5 < (distance(m.x, m.y, opponent_base_x,
+                                   opponent_base_y) - 300)/400
+                        if value > best_value:
+                            best_value = value
+                            best_hero = i
+                            best_action = f'SPELL SHIELD {m.id} shield {m.id}'
+                            best_monster = None
                     # control opponent hero
                     for opponent_hero in opp_heroes:
                         if opponent_hero.shieldLife > 0:
@@ -273,11 +274,15 @@ while True:
                         if not in_range(opponent_hero.x, opponent_hero.y, hero.x, hero.y, 2200):
                             continue
                         if_attack_monster = 0
+                        monster_value = 0
                         for m in monsters:
-                            if in_range(m.x, m.y, opponent_hero.x, opponent_hero.y, 800):
+                            if in_range(m.x, m.y, opponent_hero.x, opponent_hero.y, 800 + 800):
                                 if_attack_monster += 1
+                                monster_value = m.health - \
+                                    math.ceil(
+                                        (distance(m.x, m.y, opponent_base_x, opponent_base_y) - 300)/400)
                         if if_attack_monster > 0:
-                            value = 5e9 + if_attack_monster
+                            value = 5e9 + monster_value
                             if value > best_value:
                                 best_value = value
                                 best_hero = i

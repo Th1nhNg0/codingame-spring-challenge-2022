@@ -1,3 +1,5 @@
+java -jar cg-brutaltester.jar -r "java -jar spring.jar" -p1 "python bot_sliver.py" -p2 "python bot_sliver_old.py" -t 3 -n 100
+
 # Chiến thuật wood 2（づ￣ 3 ￣）づ ╭❤️ ～
 
 Di chuyển 3 hero để giết bọ <(")
