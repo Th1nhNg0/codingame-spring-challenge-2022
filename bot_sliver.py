@@ -255,11 +255,9 @@ while True:
                             continue
                         if distance(m.x, m.y, opponent_base_x, opponent_base_y) > 5000:
                             continue
-                        if m.health/1.5 < (distance(m.x, m.y, opponent_base_x, opponent_base_y) - 300)/400:
+                        if m.health/2 < (distance(m.x, m.y, opponent_base_x, opponent_base_y) - 300)/400:
                             continue
-                        value = 5e9 + m.health / \
-                            1.5 < (distance(m.x, m.y, opponent_base_x,
-                                   opponent_base_y) - 300)/400
+                        value = 5e9
                         if value > best_value:
                             best_value = value
                             best_hero = i
@@ -274,15 +272,11 @@ while True:
                         if not in_range(opponent_hero.x, opponent_hero.y, hero.x, hero.y, 2200):
                             continue
                         if_attack_monster = 0
-                        monster_value = 0
                         for m in monsters:
                             if in_range(m.x, m.y, opponent_hero.x, opponent_hero.y, 800 + 800):
                                 if_attack_monster += 1
-                                monster_value = m.health - \
-                                    math.ceil(
-                                        (distance(m.x, m.y, opponent_base_x, opponent_base_y) - 300)/400)
                         if if_attack_monster > 0:
-                            value = 5e9 + monster_value
+                            value = 4e9
                             if value > best_value:
                                 best_value = value
                                 best_hero = i
