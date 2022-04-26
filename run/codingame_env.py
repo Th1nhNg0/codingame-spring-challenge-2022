@@ -15,7 +15,7 @@ class CodingameEnv(gym.Env):
         # Define action and observation space
         # They must be gym.spaces objects
         # Example when using discrete actions:
-        self.action_space = spaces.MultiDiscrete([9, 9, 9])
+        self.action_space = spaces.MultiDiscrete([15, 15, 15])
         self.observation_space = spaces.Box(low=-1, high=17630,
                                             shape=(48, ), dtype=np.int16)
 

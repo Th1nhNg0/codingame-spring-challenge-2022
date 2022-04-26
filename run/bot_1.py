@@ -196,16 +196,21 @@ while True:
     1: Move to hero's nearest monster
     2: Move to base's nearest monster
     3: Move to opponent base at random position x,y in [5000,5000] from base
+    4: Move to hero's nearest opponent hero
+    5: Move to hero's farthest opponent hero
 
-    4: Spell Shield on self
-    5: Spell Shielf on random monster in hero range
+    6: Spell Shield on self
+    7: Spell Shielf on nearest monster in hero range
+    8: Spell Shielf on farthest monster in hero range
 
-    6: Spell wind to opponent base
+    9: Spell wind to opponent base
 
-    7: Control random monster to opponent base of map in hero range
-    8: Control random opponent hero to middle map in hero range
+    10: Control nearest monster to opponent base of map in hero range
+    11: Control farthest monster to opponent base of map in hero range
+    12: Control nearest opponent hero to middle map in hero range
+    13: Control farthest opponent hero to middle map in hero range
 
-    9: WAIT for next turn
+    14: WAIT
     '''
     cmds = [
         'WAIT',
@@ -234,7 +239,7 @@ while True:
             nearest_monster = None
             nearest_distance = 1e18
             for m in monsters:
-                d = distance(base_x,base_y, m.x, m.y)
+                d = distance(base_x, base_y, m.x, m.y)
                 if d < nearest_distance:
                     nearest_monster = m
                     nearest_distance = d
@@ -250,39 +255,112 @@ while True:
             cmds[index] = f'MOVE {x} {y}'
 
         if action == 4:
-            if my_mana >= 10:
-                cmds[index] = f'SPELL SHIELD {hero.id}'
+            nearest_hero = None
+            nearest_distance = 1e18
+            for h in opp_heroes:
+                d = distance(hero.x, hero.y, h.x, h.y)
+                if d < nearest_distance:
+                    nearest_hero = h
+                    nearest_distance = d
+            if nearest_hero is not None:
+                cmds[index] = f'MOVE {nearest_hero.x} {nearest_hero.y}'
 
         if action == 5:
-            if my_mana >= 10:
-                monster_in_hero_range = [
-                    m for m in monsters if in_range(m.x, m.y, hero.x, hero.y, 2200)]
-                random_monster = random.choice(monster_in_hero_range)
-                if random_monster is not None:
-                    cmds[index] = f'SPELL SHIELD {random_monster.id}'
+            farthest_hero = None
+            farthest_distance = 0
+            for h in opp_heroes:
+                d = distance(hero.x, hero.y, h.x, h.y)
+                if d > farthest_distance:
+                    farthest_hero = h
+                    farthest_distance = d
+            if farthest_hero is not None:
+                cmds[index] = f'MOVE {farthest_hero.x} {farthest_hero.y}'
 
         if action == 6:
             if my_mana >= 10:
-                cmds[index] = f'SPELL WIND {opponent_base_x} {opponent_base_y}'
+                cmds[index] = f'SPELL SHIELD {hero.id}'
 
         if action == 7:
             if my_mana >= 10:
-                monster_in_hero_range = [
-                    m for m in monsters if in_range(m.x, m.y, hero.x, hero.y, 2200)]
-                random_monster = random.choice(monster_in_hero_range)
-                if random_monster is not None:
-                    cmds[index] = f'SPELL CONTROL {random_monster.id} {opponent_base_x} {opponent_base_y}'
+                nearest_monster = None
+                nearest_distance = 1e18
+                for m in monsters:
+                    if in_range(hero.x, hero.y, m.x, m.y, 2200):
+                        d = distance(hero.x, hero.y, m.x, m.y)
+                        if d < nearest_distance:
+                            nearest_monster = m
+                            nearest_distance = d
+                if nearest_monster is not None:
+                    cmds[index] = f'SPELL SHIELD {nearest_monster.id}'
 
         if action == 8:
             if my_mana >= 10:
-                opp_hero_in_hero_range = [
-                    h for h in opp_heroes if in_range(h.x, h.y, hero.x, hero.y, 2200)]
-                random_hero = random.choice(opp_hero_in_hero_range)
-                if random_hero is not None:
-                    cmds[index] = f'SPELL CONTROL {random_hero.id} {MAP_WIDTH//2} {MAP_HEIGHT//2}'
+                farthest_monster = None
+                farthest_distance = 0
+                for m in monsters:
+                    if in_range(hero.x, hero.y, m.x, m.y, 2200):
+                        d = distance(hero.x, hero.y, m.x, m.y)
+                        if d > farthest_distance:
+                            farthest_monster = m
+                            farthest_distance = d
+                if farthest_monster is not None:
+                    cmds[index] = f'SPELL SHIELD {farthest_monster.id}'
 
         if action == 9:
-            cmds[index] = 'WAIT'
+            if my_mana >= 10:
+                cmds[index] = f'SPELL WIND {opponent_base_x} {opponent_base_y}'
+
+        if action == 10:
+            if my_mana >= 10:
+                nearest_monster = None
+                nearest_distance = 1e18
+                for m in monsters:
+                    if in_range(hero.x, hero.y, m.x, m.y, 2200):
+                        d = distance(hero.x, hero.y, m.x, m.y)
+                        if d < nearest_distance:
+                            nearest_monster = m
+                            nearest_distance = d
+                if nearest_monster is not None:
+                    cmds[index] = f'SPELL CONTROL {nearest_monster.id} {opponent_base_x} {opponent_base_y}'
+
+        if action == 11:
+            if my_mana >= 10:
+                farthest_monster = None
+                farthest_distance = 0
+                for m in monsters:
+                    if in_range(hero.x, hero.y, m.x, m.y, 2200):
+                        d = distance(hero.x, hero.y, m.x, m.y)
+                        if d > farthest_distance:
+                            farthest_monster = m
+                            farthest_distance = d
+                if farthest_monster is not None:
+                    cmds[index] = f'SPELL CONTROL {farthest_monster.id} {opponent_base_x} {opponent_base_y}'
+
+        if action == 12:
+            if my_mana >= 10:
+                nearest_hero = None
+                nearest_distance = 1e18
+                for h in opp_heroes:
+                    if in_range(hero.x, hero.y, h.x, h.y, 2200):
+                        d = distance(hero.x, hero.y, h.x, h.y)
+                        if d < nearest_distance:
+                            nearest_hero = h
+                            nearest_distance = d
+                if nearest_hero is not None:
+                    cmds[index] = f'SPELL CONTROL {nearest_hero.id} {MAP_WIDTH//2} {MAP_HEIGHT//2}'
+
+        if action == 13:
+            if my_mana >= 10:
+                farthest_hero = None
+                farthest_distance = 0
+                for h in opp_heroes:
+                    if in_range(hero.x, hero.y, h.x, h.y, 2200):
+                        d = distance(hero.x, hero.y, h.x, h.y)
+                        if d > farthest_distance:
+                            farthest_hero = h
+                            farthest_distance = d
+                if farthest_hero is not None:
+                    cmds[index] = f'SPELL CONTROL {farthest_hero.id} {MAP_WIDTH//2} {MAP_HEIGHT//2}'
 
         if "SPELL" in cmds[index]:
             my_mana -= 10
