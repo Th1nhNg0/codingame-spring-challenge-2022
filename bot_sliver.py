@@ -51,7 +51,7 @@ opponent_base_x, opponent_base_y = MAP_WIDTH-base_x, MAP_HEIGHT-base_y
 
 heroes_per_player = int(input())
 
-attacker_hero_id = 1
+attacker_hero_id = 2
 attack_on = False
 attack_move_pos = 0
 
@@ -113,9 +113,11 @@ while True:
 
             # move to guard position
             max_dist = 6200
+            k = 12
             if attack_on:
-                max_dist = 5000
-            x, y = get_guard_position(base_x, base_y, max_dist)[i]
+                k = 8
+            pos = get_guard_position(base_x, base_y, max_dist, k)
+            x, y = pos[i % len(pos)]
             value = 1e5
             if value > best_value:
                 best_value = value
@@ -129,7 +131,7 @@ while True:
             if my_mana >= 10:
                 is_monster_near_base = False
                 for m in monsters:
-                    if in_range(m.x, m.y,  hero.x, hero.y, 1280) and m.shieldLife == 0 and m.health+3 > 2*distance(m.x, m.y, base_x, base_y)/400:
+                    if in_range(m.x, m.y,  hero.x, hero.y, 1280) and m.shieldLife == 0 and m.health > (distance(m.x, m.y, base_x, base_y) + 2200)/400:
                         is_monster_near_base = True
                         break
                 if is_monster_near_base:
@@ -140,7 +142,7 @@ while True:
                         best_monster = None
                         best_action = f'SPELL WIND {opponent_base_x} {opponent_base_y} cast wind spell'
             # use shield on self
-            if hero.shieldLife == 0 and my_mana >= 30:
+            if not attack_on and hero.shieldLife == 0 and my_mana >= 30:
                 near_base = False
                 if in_range(hero.x, hero.y, base_x, base_y, 6000):
                     near_base = True
@@ -174,7 +176,7 @@ while True:
             for m in monsters:
                 max_dist = 9000
                 if attack_on:
-                    max_dist = 7000
+                    max_dist = 8000
                 if isMonsterTargeted[m.id] or not in_range(m.x, m.y, base_x, base_y, max_dist):
                     continue
                 value = 1e6 - distance(m.x, m.y, hero.x, hero.y)
@@ -266,7 +268,7 @@ while True:
                     for opponent_hero in opp_heroes:
                         if opponent_hero.shieldLife > 0:
                             continue
-                        if not in_range(opponent_hero.x, opponent_hero.y, opponent_base_x, opponent_base_y, 7000):
+                        if not in_range(opponent_hero.x, opponent_hero.y, opponent_base_x, opponent_base_y, 6000):
                             continue
                         if not in_range(opponent_hero.x, opponent_hero.y, hero.x, hero.y, 2200):
                             continue
@@ -285,7 +287,7 @@ while True:
                     for opponent_hero in opp_heroes:
                         if opponent_hero.shieldLife > 0:
                             continue
-                        if not in_range(opponent_hero.x, opponent_hero.y, opponent_base_x, opponent_base_y, 7000):
+                        if not in_range(opponent_hero.x, opponent_hero.y, opponent_base_x, opponent_base_y, 5000):
                             continue
                         if not in_range(opponent_hero.x, opponent_hero.y, hero.x, hero.y, 1280):
                             continue
