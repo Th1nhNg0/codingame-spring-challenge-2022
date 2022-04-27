@@ -53,6 +53,7 @@ heroes_per_player = int(input())
 
 attacker_hero_id = 2
 attack_on = False
+farming_on = False
 attack_move_pos = 0
 
 # game loop
@@ -99,6 +100,9 @@ while True:
 
     if my_mana > 200:
         attack_on = True
+        farming_on = False
+    if my_mana < 30:
+        farming_on = True
 
     while True:
         best_action = None
@@ -112,10 +116,11 @@ while True:
             hero = my_heroes[i]
 
             # move to guard position
-            max_dist = 6200
+            max_dist = 8000
             k = 12
             if attack_on:
                 k = 8
+                max_dist = 6200
             pos = get_guard_position(base_x, base_y, max_dist, k)
             x, y = pos[i % len(pos)]
             value = 1e5
@@ -131,7 +136,11 @@ while True:
             if my_mana >= 10:
                 is_monster_near_base = False
                 for m in monsters:
-                    if in_range(m.x, m.y,  hero.x, hero.y, 1280) and m.shieldLife == 0 and m.health > (distance(m.x, m.y, base_x, base_y) + 2200)/400:
+                    condition_ = in_range(m.x, m.y, base_x, base_y, 5000)
+                    if attack_on:
+                        condition_ = m.health * \
+                            1.5 >= (distance(m.x, m.y, base_x, base_y) - 300)/400
+                    if in_range(m.x, m.y,  hero.x, hero.y, 1280) and m.shieldLife == 0 and condition_:
                         is_monster_near_base = True
                         break
 
@@ -165,7 +174,13 @@ while True:
 
             # attack monster to defense
             for m in monsters:
-                if isMonsterTargeted[m.id] or not ((m.nearBase == 1 and m.threatFor == 1) or (m.nearBase == 0 and m.threatFor == 1)):
+                if not ((m.nearBase == 1 and m.threatFor == 1) or (m.nearBase == 0 and m.threatFor == 1)):
+                    continue
+
+                monster_can_reach_base = m.health >= (
+                    distance(m.x, m.y, base_x, base_y) - 300)/400
+
+                if isMonsterTargeted[m.id] and not monster_can_reach_base:
                     continue
                 value = 1e7 - distance(base_x, base_y, m.x,
                                        m.y) - distance(m.x, m.y, hero.x, hero.y)
@@ -195,112 +210,131 @@ while True:
                     best_action = f'MOVE {x} {y} moving to opponent base'
                     best_monster = None
 
-                # always have 20 mana for defense
-                if my_mana >= 30:
-                    #   use shield on self
-                    if hero.shieldLife == 0:
-                        if in_range(hero.x, hero.y, opponent_base_x, opponent_base_y, 7000):
-                            opp_hero_in_range = False
-                            monster_in_range = False
-                            for opp_hero in opp_heroes:
-                                if in_range(hero.x, hero.y, opp_hero.x, opp_hero.y, 2200):
-                                    opp_hero_in_range = True
-                                    break
-                            for monster in monsters:
-                                if in_range(hero.x, hero.y, monster.x, monster.y, 2200):
-                                    monster_in_range = True
-                                    break
+                # farming if no mana left
+                if farming_on:
+                    can_farm = False
+                    for m in monsters:
+                        max_dist = 9000
+                        if not in_range(m.x, m.y, opponent_base_x, opponent_base_y, max_dist):
+                            continue
+                        if ((m.nearBase == 1 and m.threatFor == 2) or (m.nearBase == 0 and m.threatFor == 2)):
+                            continue
+                        can_farm = True
+                        value = 7e9 - distance(m.x, m.y, hero.x, hero.y)
+                        if value > best_value:
+                            best_value = value
+                            best_hero = i
+                            best_action = f'MOVE {m.x + m.vx} {m.y + m.vy } farming {m.id}'
+                            best_monster = m
+                    if not can_farm:
+                        best_value = 7e9
+                        best_hero = i
+                        best_action = f'MOVE {MAP_WIDTH//2} {MAP_HEIGHT//2} move to center'
+                        best_monster = None
+                #   use shield on self
+                if hero.shieldLife == 0:
+                    if in_range(hero.x, hero.y, opponent_base_x, opponent_base_y, 7000):
+                        opp_hero_in_range = False
+                        monster_in_range = False
+                        for opp_hero in opp_heroes:
+                            if in_range(hero.x, hero.y, opp_hero.x, opp_hero.y, 2200):
+                                opp_hero_in_range = True
+                                break
+                        for monster in monsters:
+                            if in_range(hero.x, hero.y, monster.x, monster.y, 2200):
+                                monster_in_range = True
+                                break
 
-                            if opp_hero_in_range and monster_in_range:
-                                value = 4e9 - 100
-                                if value > best_value:
-                                    best_value = value
-                                    best_hero = i
-                                    best_monster = None
-                                    best_action = f'SPELL SHIELD {hero.id}'
-
-                    # use wind spell
-                    is_monster_near_base = 0
-                    for m in monsters:
-                        if in_range(m.x, m.y,  opponent_base_x, opponent_base_y, 5000+2200) and in_range(m.x, m.y,  hero.x, hero.y, 1280) and m.shieldLife == 0:
-                            is_monster_near_base += 1
-                    if is_monster_near_base >= 2:
-                        value = 3e9
-                        if value > best_value:
-                            best_value = value
-                            best_hero = i
-                            best_monster = None
-                            best_action = f'SPELL WIND {opponent_base_x} {opponent_base_y} cast wind spell'
-                    # use control spell
-                    for m in monsters:
-                        if (m.nearBase == 1 and m.threatFor == 2) or (m.nearBase == 0 and m.threatFor == 2):
-                            continue
-                        if m.health < 15:
-                            continue
-                        if distance(m.x, m.y, hero.x, hero.y) > 2200 or distance(hero.x, hero.y, opponent_base_x, opponent_base_y) > 9000:
-                            continue
-                        if distance(m.x, m.y, opponent_base_x, opponent_base_y) < 5000:
-                            continue
-                        value = 2e9
-                        if value > best_value:
-                            best_value = value
-                            best_hero = i
-                            best_action = f'SPELL CONTROL {m.id} {opponent_base_x} {opponent_base_y} control {m.id}'
-                            best_monster = None
-                    # use shield spell on monster
-                    for m in monsters:
-                        if not ((m.nearBase == 1 and m.threatFor == 2) or (m.nearBase == 0 and m.threatFor == 2)):
-                            continue
-                        if m.shieldLife > 0 or distance(m.x, m.y, hero.x, hero.y) > 2200:
-                            continue
-                        if distance(m.x, m.y, opponent_base_x, opponent_base_y) > 5000:
-                            continue
-                        if m.health < (distance(m.x, m.y, opponent_base_x, opponent_base_y) - 300)/400:
-                            continue
-                        value = 5e9
-                        if value > best_value:
-                            best_value = value
-                            best_hero = i
-                            best_action = f'SPELL SHIELD {m.id} shield {m.id}'
-                            best_monster = None
-                    # control opponent hero
-                    for opponent_hero in opp_heroes:
-                        if opponent_hero.shieldLife > 0:
-                            continue
-                        if not in_range(opponent_hero.x, opponent_hero.y, opponent_base_x, opponent_base_y, 6000):
-                            continue
-                        if not in_range(opponent_hero.x, opponent_hero.y, hero.x, hero.y, 2200):
-                            continue
-                        if_attack_monster = 0
-                        for m in monsters:
-                            if in_range(m.x, m.y, opponent_hero.x, opponent_hero.y, 800 + 800):
-                                if_attack_monster += 1
-                        if if_attack_monster > 0:
-                            value = 4e9
+                        if opp_hero_in_range and monster_in_range:
+                            value = 4e9 - 100
                             if value > best_value:
                                 best_value = value
                                 best_hero = i
-                                best_action = f'SPELL CONTROL {opponent_hero.id} {MAP_WIDTH//2 } {MAP_HEIGHT//2} block {opponent_hero.id}'
                                 best_monster = None
-                    # wind opponent hero
-                    for opponent_hero in opp_heroes:
-                        if opponent_hero.shieldLife > 0:
-                            continue
-                        if not in_range(opponent_hero.x, opponent_hero.y, opponent_base_x, opponent_base_y, 5000):
-                            continue
-                        if not in_range(opponent_hero.x, opponent_hero.y, hero.x, hero.y, 1280):
-                            continue
-                        if_attack_monster = 0
-                        for m in monsters:
-                            if in_range(m.x, m.y, opponent_hero.x, opponent_hero.y, 800) and m.shieldLife > 0:
-                                if_attack_monster += 1
-                        if if_attack_monster > 0:
-                            value = 6e9 + if_attack_monster
-                            if value > best_value:
-                                best_value = value
-                                best_hero = i
-                                best_action = f'SPELL WIND  {MAP_WIDTH//2 } {MAP_HEIGHT//2} cast wind spell'
-                                best_monster = None
+                                best_action = f'SPELL SHIELD {hero.id}'
+
+                # use wind spell on monster
+                is_monster_near_base = 0
+                for m in monsters:
+                    if in_range(m.x, m.y,  opponent_base_x, opponent_base_y, 5000+2200) and in_range(m.x, m.y,  hero.x, hero.y, 1280) and m.shieldLife == 0:
+                        is_monster_near_base += 1
+                if is_monster_near_base >= 2:
+                    value = 3e9
+                    if value > best_value:
+                        best_value = value
+                        best_hero = i
+                        best_monster = None
+                        best_action = f'SPELL WIND {opponent_base_x} {opponent_base_y} cast wind spell'
+                # use control spell on monster
+                for m in monsters:
+                    if (m.nearBase == 1 and m.threatFor == 2) or (m.nearBase == 0 and m.threatFor == 2):
+                        continue
+                    if m.health < 15:
+                        continue
+                    if distance(m.x, m.y, hero.x, hero.y) > 2200 or distance(hero.x, hero.y, opponent_base_x, opponent_base_y) > 9000:
+                        continue
+                    if distance(m.x, m.y, opponent_base_x, opponent_base_y) < 5000:
+                        continue
+                    value = 2e9
+                    if value > best_value:
+                        best_value = value
+                        best_hero = i
+                        best_action = f'SPELL CONTROL {m.id} {opponent_base_x} {opponent_base_y} control {m.id}'
+                        best_monster = None
+                # use shield spell on monster
+                for m in monsters:
+                    if not ((m.nearBase == 1 and m.threatFor == 2) or (m.nearBase == 0 and m.threatFor == 2)):
+                        continue
+                    if m.shieldLife > 0 or distance(m.x, m.y, hero.x, hero.y) > 2200:
+                        continue
+                    if distance(m.x, m.y, opponent_base_x, opponent_base_y) > 5000:
+                        continue
+                    if m.health < (distance(m.x, m.y, opponent_base_x, opponent_base_y) - 300)/400:
+                        continue
+                    value = 5e9
+                    if value > best_value:
+                        best_value = value
+                        best_hero = i
+                        best_action = f'SPELL SHIELD {m.id} shield {m.id}'
+                        best_monster = None
+                # control opponent hero
+                for opponent_hero in opp_heroes:
+                    if opponent_hero.shieldLife > 0:
+                        continue
+                    if not in_range(opponent_hero.x, opponent_hero.y, opponent_base_x, opponent_base_y, 6000):
+                        continue
+                    if not in_range(opponent_hero.x, opponent_hero.y, hero.x, hero.y, 2200):
+                        continue
+                    if_attack_monster = 0
+                    for m in monsters:
+                        if in_range(m.x, m.y, opponent_hero.x, opponent_hero.y, 800 + 800):
+                            if_attack_monster += 1
+                    if if_attack_monster > 0:
+                        value = 4e9
+                        if value > best_value:
+                            best_value = value
+                            best_hero = i
+                            best_action = f'SPELL CONTROL {opponent_hero.id} {MAP_WIDTH//2 } {MAP_HEIGHT//2} block {opponent_hero.id}'
+                            best_monster = None
+                # wind opponent hero
+                for opponent_hero in opp_heroes:
+                    if opponent_hero.shieldLife > 0:
+                        continue
+                    if not in_range(opponent_hero.x, opponent_hero.y, opponent_base_x, opponent_base_y, 5000):
+                        continue
+                    if not in_range(opponent_hero.x, opponent_hero.y, hero.x, hero.y, 1280):
+                        continue
+                    if_attack_monster = 0
+                    for m in monsters:
+                        if in_range(m.x, m.y, opponent_hero.x, opponent_hero.y, 800 + 800) and m.shieldLife > 0:
+                            if_attack_monster += 1
+                    if if_attack_monster > 0:
+                        value = 6e9 + if_attack_monster
+                        if value > best_value:
+                            best_value = value
+                            best_hero = i
+                            best_action = f'SPELL WIND  {MAP_WIDTH//2 } {MAP_HEIGHT//2} cast wind spell'
+                            best_monster = None
         if best_hero is None:
             break
 
