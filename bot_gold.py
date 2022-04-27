@@ -136,11 +136,7 @@ while True:
             if my_mana >= 10:
                 is_monster_near_base = False
                 for m in monsters:
-                    condition_ = in_range(m.x, m.y, base_x, base_y, 5000)
-                    if attack_on:
-                        condition_ = m.health * \
-                            1.5 >= (distance(m.x, m.y, base_x, base_y) - 300)/400
-                    if in_range(m.x, m.y,  hero.x, hero.y, 1280) and m.shieldLife == 0 and condition_:
+                    if in_range(m.x, m.y,  hero.x, hero.y, 1280) and m.shieldLife == 0 and m.health > (distance(m.x, m.y, base_x, base_y) + 2200)/400:
                         is_monster_near_base = True
                         break
 
@@ -178,7 +174,7 @@ while True:
                     continue
 
                 monster_can_reach_base = m.health >= (
-                    distance(m.x, m.y, base_x, base_y) - 300)/400
+                    distance(m.x, m.y, base_x, base_y) - 500)/400
 
                 if isMonsterTargeted[m.id] and not monster_can_reach_base:
                     continue
@@ -214,10 +210,10 @@ while True:
                 if farming_on:
                     can_farm = False
                     for m in monsters:
-                        max_dist = 9000
+                        max_dist = 12000
                         if not in_range(m.x, m.y, opponent_base_x, opponent_base_y, max_dist):
                             continue
-                        if ((m.nearBase == 1 and m.threatFor == 2) or (m.nearBase == 0 and m.threatFor == 2)):
+                        if (m.nearBase == 1 and m.threatFor == 2) or (m.nearBase == 0 and m.threatFor == 2):
                             continue
                         can_farm = True
                         value = 7e9 - distance(m.x, m.y, hero.x, hero.y)
